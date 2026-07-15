@@ -3,14 +3,15 @@ kind: Kustomization
 # Single environment. Everything lives in the `wharf` namespace.
 namespace: wharf
 resources:
-  - ../../base
-  - ingress.yaml
-  - sealed-secrets
+- ../../base
+- ingress.yaml
+- sealed-secrets
 # CI (wharf-backend / wharf-web repos) rewrites these tags via
 # `kustomize edit set image` and pushes — ArgoCD then auto-syncs. Merge to main
 # in a product repo IS the prod deploy. The values below are the bootstrap pins.
 images:
-  - name: ghcr.io/janne6565/wharf-backend
-    newTag: main-f0497e9
-  - name: ghcr.io/janne6565/wharf-web
-    newTag: main-2af519e
+- name: ghcr.io/janne6565/wharf-backend
+  newTag: main-f0497e9
+- name: ghcr.io/janne6565/wharf-web
+  newName: ghcr.io/janne6565/wharf-web
+  newTag: main-8c8fe4a
