@@ -1,0 +1,35 @@
+# Single host, one Ingress. Traefik routes by longest prefix: /api hits the
+# backend, everything else the web SSR server (same origin → no browser CORS).
+# TLS is issued by cert-manager (letsencrypt-prod).
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: wharf-ingress
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - wharf.jannekeipert.de
+      secretName: wharf-tls
+  rules:
+    - host: wharf.jannekeipert.de
+      http:
+        paths:
+          # API first — backend serves everything under /api/v1/...
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: backend
+                port:
+                  number: 8080
+          # Everything else is the web SSR server.
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  number: 3000

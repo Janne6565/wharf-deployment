@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  annotations:
+    # Roll the pods automatically when the config map or sealed secrets change.
+    reloader.stakater.com/auto: "true"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: backend
+          image: ghcr.io/janne6565/wharf-backend:placeholder
+          ports:
+            - name: http
+              containerPort: 8080
+          # Non-secret config from the ConfigMap; the two secret values are
+          # pulled individually from their sealed secrets below.
+          envFrom:
+            - configMapRef:
+                name: wharf-backend-config
+          env:
+            # Same password as Postgres — one shared sealed secret (wharf-db-secret).
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: wharf-db-secret
+                  key: POSTGRES_PASSWORD
+            # Must differ from the committed dev fallback — the app fail-closes on
+            # the default in a non-local profile.
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: wharf-jwt-secret
+                  key: JWT_SECRET_KEY
+          # Spring Boot Actuator health endpoint on the main HTTP port, permitted
+          # unauthenticated in SecurityConfig (/actuator/health/**).
+          startupProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            periodSeconds: 5
+            # Flyway migrations run at startup — allow up to ~2.5 min before failing.
+            failureThreshold: 30
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "768Mi"
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            # Writable /tmp on a read-only root FS (Tomcat work dir, java.io.tmpdir).
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

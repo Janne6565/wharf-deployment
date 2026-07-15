@@ -1,0 +1,24 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: wharf
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: wharf
+  source:
+    repoURL: https://github.com/Janne6565/wharf-deployment
+    targetRevision: main
+    path: overlays/main
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: wharf
+  syncPolicy:
+    # Fully automated: any commit to main (CI tag bump or manual manifest edit)
+    # is reconciled onto the cluster with no manual step.
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

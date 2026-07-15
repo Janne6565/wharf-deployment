@@ -1,0 +1,16 @@
+# Non-secret backend config. The wharf-backend prod profile reads these via
+# ${...} placeholders in application-prod.properties. Secret values (DB password,
+# JWT signing key) live in the sealed secrets instead.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wharf-backend-config
+data:
+  SPRING_PROFILES_ACTIVE: prod
+  # Cap the JVM heap on the memory-scarce single node (~576Mi of the 768Mi limit).
+  JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=75"
+  DB_URL: jdbc:postgresql://postgres:5432/wharf
+  DB_USERNAME: wharf
+  # Binds to app.cors.allowed-origins. Browser traffic is same-origin through the
+  # ingress, but the prod origin is allowed explicitly for credentialed CORS.
+  CORS_ALLOWED_ORIGINS: https://wharf.jannekeipert.de
