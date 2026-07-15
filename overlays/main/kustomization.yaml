@@ -13,4 +13,4 @@ images:
   - name: ghcr.io/janne6565/wharf-backend
     newTag: main-f0497e9
   - name: ghcr.io/janne6565/wharf-web
-    newTag: main-c348307
+    newTag: main-2af519e
