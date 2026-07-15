@@ -1,4 +1,4 @@
-<!-- AUTO-SYNCED from agents KB: concepts/DEPLOYMENT.md @ 4fe753e.
+<!-- AUTO-SYNCED from agents KB: concepts/DEPLOYMENT.md @ b285312.
      Do NOT edit here — edit the source in ~/projects/agents and re-run scripts/sync-conventions.sh. -->
 
 # Deployment

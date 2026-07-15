@@ -1,4 +1,4 @@
-<!-- AUTO-SYNCED from agents KB: projects/wharf.md @ 4fe753e.
+<!-- AUTO-SYNCED from agents KB: projects/wharf.md @ b285312.
      Do NOT edit here — edit the source in ~/projects/agents and re-run scripts/sync-conventions.sh. -->
 
 # Wharf
@@ -16,11 +16,17 @@ only ever holds ciphertext.
   - github.com/Janne6565/wharf-backend — sync + device-code auth (Java 21 + Spring Boot).
     Exists. Projects/team endpoints still planned.
   - `wharf-mobile` — companion app (React Native + Expo). Planned.
-  - `wharf-deployment` — Kustomize + ArgoCD. Planned.
+  - github.com/Janne6565/wharf-deployment — Kustomize base + single `main` overlay
+    (merge-to-main = prod deploy), ArgoCD app wired via cluster-deployment. Exists.
 - **Local:** clone the repo(s) above into `~/projects/wharf/<repo-name>/` (multi-repo, one
   subfolder per repo). Always `git pull` before reading. See
   [repo conventions](README.md#local-repos--clone-on-demand-pull-before-reading).
-- **Cluster:** `wharf` (planned; not yet deployed).
+- **Cluster:** namespace `wharf` — **deployed** (2026-07-15): backend + web (Nitro
+  Node) + postgres StatefulSet, single host `wharf.jannekeipert.de` with `/api`
+  path-routed to the backend (same-origin, no CORS, SameSite=Strict cookie works).
+  Sealed secrets for JWT key + DB password. CI: push to main builds
+  `ghcr.io/janne6565/wharf-*:main-<sha>` (public packages) and bumps the pin in
+  wharf-deployment.
 - **Design source:** Claude Design project `33a77f79-40ef-4774-8324-6ece35835b06`
   (files: Wharf TUI v2, Wharf Web Auth, Wharf Landing, Wharf Mobile). Import via the
   `claude_design` MCP (`DesignSync` tool). Removed by decision: shared/multiplayer SSH

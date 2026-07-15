@@ -1,4 +1,4 @@
-<!-- AUTO-SYNCED from agents KB: concepts/CICD.md @ 4fe753e.
+<!-- AUTO-SYNCED from agents KB: concepts/CICD.md @ b285312.
      Do NOT edit here — edit the source in ~/projects/agents and re-run scripts/sync-conventions.sh. -->
 
 # CI/CD
@@ -25,7 +25,8 @@ repo — ArgoCD does the actual rollout (see [DEPLOYMENT.md](DEPLOYMENT.md)).
      - semver tag → `<version>` **and** `prod-latest`
    - `docker/build-push-action` with `cache-from/to: type=gha`.
 2. **Update staging** (only on branch push):
-   - Clone the `*-deployment` repo with a `DEPLOY_REPO_TOKEN`.
+   - Clone the `*-deployment` repo with write access — preferably a **deploy key**
+     (see below), legacy repos use a `DEPLOY_REPO_TOKEN` PAT.
    - `cd overlays/staging && kustomize edit set image <img>:main-<short-sha>`
    - Commit + push. ArgoCD auto-syncs staging.
 3. **Update prod** (only on tag push): same idea against `overlays/prod` with the
@@ -44,9 +45,45 @@ without a staging/prod split (e.g. Strata) use a single `main` overlay and bump 
 The deployment overlay pins the immutable `main-<sha>` / `X.Y.Z` tag (not the
 `*-latest` alias) so every environment is reproducible and rollbacks are a git revert.
 
+## Write access to the deployment repo — use a deploy key
+
+The tag-bump job needs push rights on the `*-deployment` repo. Prefer a **repo-scoped
+SSH deploy key** over a PAT: a deploy key grants write to exactly *one* repo, doesn't
+act as a user, doesn't expire, and revoking it can't break anything else. (Wharf is
+the reference implementation; older repos like cosy-domain-provider still use a
+`DEPLOY_REPO_TOKEN` fine-grained PAT — migrate opportunistically.)
+
+Setup, once per deployment repo:
+
+```bash
+ssh-keygen -t ed25519 -N "" -C "<project>-ci-tag-bump" -f deploy_key
+gh repo deploy-key add deploy_key.pub -R <owner>/<project>-deployment \
+  --allow-write --title "<project> CI tag bump"
+# same secret name in every product repo that bumps this deployment repo:
+gh secret set DEPLOY_REPO_SSH_KEY -R <owner>/<project>-backend  < deploy_key
+gh secret set DEPLOY_REPO_SSH_KEY -R <owner>/<project>-frontend < deploy_key
+rm -P deploy_key deploy_key.pub   # private key lives ONLY in Actions secrets
+```
+
+In `docker.yml`, the bump job checks the deployment repo out with the key —
+`actions/checkout` configures the remote so the later `git push` goes over SSH
+automatically:
+
+```yaml
+- name: Check out <project>-deployment
+  uses: actions/checkout@v4
+  with:
+    repository: <owner>/<project>-deployment
+    ssh-key: ${{ secrets.DEPLOY_REPO_SSH_KEY }}
+```
+
+One key is shared by all product repos of the *same* project (same secret name), but
+never reuse a key across projects — one deploy key per deployment repo, so a leak or
+revocation stays contained.
+
 **DO:**
-- Keep secrets (`GITHUB_TOKEN`, `DEPLOY_REPO_TOKEN`) in GitHub Actions secrets;
-  never in the workflow file.
+- Keep secrets (`GITHUB_TOKEN`, `DEPLOY_REPO_SSH_KEY` / legacy `DEPLOY_REPO_TOKEN`)
+  in GitHub Actions secrets; never in the workflow file.
 - Use the GHA build cache (`type=gha`) to keep image builds fast.
 - Let CI own the image tag in the deployment repo — don't race it with manual edits.
 - Commit the deployment change as `github-actions[bot]` with a `ci: update <c> image
