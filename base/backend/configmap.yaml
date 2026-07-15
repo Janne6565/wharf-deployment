@@ -14,3 +14,6 @@ data:
   # Binds to app.cors.allowed-origins. Browser traffic is same-origin through the
   # ingress, but the prod origin is allowed explicitly for credentialed CORS.
   CORS_ALLOWED_ORIGINS: https://wharf.jannekeipert.de
+  # Public origin used to build the OAuth redirect_uri
+  # (<base>/api/v1/auth/oauth/{provider}/callback).
+  OAUTH_PUBLIC_BASE_URL: https://wharf.jannekeipert.de

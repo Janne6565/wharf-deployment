@@ -15,6 +15,7 @@ re-sealing for a different name/namespace requires re-encrypting the value.
 | --- | --- | --- |
 | `wharf-db-secret` | `POSTGRES_PASSWORD` | postgres StatefulSet (`POSTGRES_PASSWORD`) and the backend (`DB_PASSWORD`, via `secretKeyRef` on the same key) — a single shared password |
 | `wharf-jwt-secret` | `JWT_SECRET_KEY` | backend JWT access/refresh signing. Must differ from the committed dev fallback (`application.properties`), or the app fail-closes in prod |
+| `wharf-oauth-secret` | `OAUTH_GOOGLE_CLIENT_ID`, `OAUTH_GOOGLE_CLIENT_SECRET`, `OAUTH_GITHUB_CLIENT_ID`, `OAUTH_GITHUB_CLIENT_SECRET` | backend Google/GitHub social login. **Optional** — referenced with `optional: true`; while absent, `GET /auth/oauth/providers` returns `[]` and the web app keeps the buttons disabled. Any subset of providers works: configure only the pair(s) you have |
 
 ## Sealing / rotating a secret
 
@@ -39,8 +40,36 @@ kubectl create secret generic wharf-jwt-secret -n wharf \
   > overlays/main/sealed-secrets/wharf-jwt-secret.yaml
 ```
 
+```sh
+# OAuth client credentials (once obtained from the provider consoles — see below).
+kubectl create secret generic wharf-oauth-secret -n wharf \
+  --dry-run=client -o yaml \
+  --from-literal=OAUTH_GOOGLE_CLIENT_ID="..." \
+  --from-literal=OAUTH_GOOGLE_CLIENT_SECRET="..." \
+  --from-literal=OAUTH_GITHUB_CLIENT_ID="..." \
+  --from-literal=OAUTH_GITHUB_CLIENT_SECRET="..." \
+  | kubeseal --cert pub-cert.pem --format yaml \
+  > overlays/main/sealed-secrets/wharf-oauth-secret.yaml
+```
+
 The backend Deployment carries `reloader.stakater.com/auto: "true"`, so a synced
 secret change triggers a rolling restart automatically.
+
+## OAuth app registration (provider consoles)
+
+Register one OAuth app per provider and use these settings:
+
+- **Google** ([console.cloud.google.com](https://console.cloud.google.com/apis/credentials),
+  "OAuth client ID", type *Web application*):
+  - Authorized redirect URI: `https://wharf.jannekeipert.de/api/v1/auth/oauth/google/callback`
+  - (dev: `http://localhost:8080/api/v1/auth/oauth/google/callback`)
+- **GitHub** ([github.com/settings/developers](https://github.com/settings/developers),
+  "New OAuth App"):
+  - Authorization callback URL: `https://wharf.jannekeipert.de/api/v1/auth/oauth/github/callback`
+  - (GitHub allows one callback per app — create a second app for local dev.)
+
+The public base URL used to build these redirect URIs is `OAUTH_PUBLIC_BASE_URL` in
+`base/backend/configmap.yaml`.
 
 ## Caveats
 

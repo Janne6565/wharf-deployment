@@ -32,6 +32,13 @@ spec:
           envFrom:
             - configMapRef:
                 name: wharf-backend-config
+            # Google/GitHub OAuth client credentials (OAUTH_*_CLIENT_ID/_SECRET).
+            # Optional: until the sealed secret exists, OAuth providers stay
+            # disabled and the app runs fine; when it lands, Reloader restarts
+            # the pod and the providers go live.
+            - secretRef:
+                name: wharf-oauth-secret
+                optional: true
           env:
             # Same password as Postgres — one shared sealed secret (wharf-db-secret).
             - name: DB_PASSWORD
