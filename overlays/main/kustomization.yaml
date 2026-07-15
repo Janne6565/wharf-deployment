@@ -12,7 +12,7 @@ resources:
 images:
 - name: ghcr.io/janne6565/wharf-backend
   newName: ghcr.io/janne6565/wharf-backend
-  newTag: main-9e8eade
+  newTag: main-b3a138e
 - name: ghcr.io/janne6565/wharf-web
   newName: ghcr.io/janne6565/wharf-web
   newTag: main-3a7f166
