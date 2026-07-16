@@ -53,6 +53,15 @@ spec:
                 secretKeyRef:
                   name: wharf-jwt-secret
                   key: JWT_SECRET_KEY
+            # Mail-service API key for invite notification emails. Optional: until the
+            # sealed secret exists the backend uses its no-op mail client and invites
+            # simply send no email; when it lands, Reloader restarts the pod.
+            - name: MAIL_SERVICE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: wharf-mail-secret
+                  key: MAIL_SERVICE_API_KEY
+                  optional: true
           # Spring Boot Actuator health endpoint on the main HTTP port, permitted
           # unauthenticated in SecurityConfig (/actuator/health/**).
           startupProbe:
