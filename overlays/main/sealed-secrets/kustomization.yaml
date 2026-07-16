@@ -3,4 +3,5 @@ kind: Kustomization
 resources:
   - wharf-db-secret.yaml
   - wharf-jwt-secret.yaml
+  - wharf-mail-secret.yaml
   - wharf-oauth-secret.yaml

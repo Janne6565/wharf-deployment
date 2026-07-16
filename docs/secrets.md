@@ -16,6 +16,7 @@ re-sealing for a different name/namespace requires re-encrypting the value.
 | `wharf-db-secret` | `POSTGRES_PASSWORD` | postgres StatefulSet (`POSTGRES_PASSWORD`) and the backend (`DB_PASSWORD`, via `secretKeyRef` on the same key) — a single shared password |
 | `wharf-jwt-secret` | `JWT_SECRET_KEY` | backend JWT access/refresh signing. Must differ from the committed dev fallback (`application.properties`), or the app fail-closes in prod |
 | `wharf-oauth-secret` | `OAUTH_GOOGLE_CLIENT_ID`, `OAUTH_GOOGLE_CLIENT_SECRET`, `OAUTH_GITHUB_CLIENT_ID`, `OAUTH_GITHUB_CLIENT_SECRET` | backend Google/GitHub social login. **Optional** — referenced with `optional: true`; while absent, `GET /auth/oauth/providers` returns `[]` and the web app keeps the buttons disabled. Any subset of providers works: configure only the pair(s) you have |
+| `wharf-mail-secret` | `MAIL_SERVICE_API_KEY` | backend project-invite notification emails via the mail-service (`POST https://mail-service.jannekeipert.de/api/v1/send`, `Authorization: Bearer <key>`). The key is a send-scoped mail-service API key (label `wharf-backend`) bound to the `info@jannekeipert.de` SMTP connection — mint/revoke in the Mail Manager UI or API. **Optional** — when absent the backend uses its no-op mail client and invites simply send no email |
 
 ## Sealing / rotating a secret
 
@@ -50,6 +51,16 @@ kubectl create secret generic wharf-oauth-secret -n wharf \
   --from-literal=OAUTH_GITHUB_CLIENT_SECRET="..." \
   | kubeseal --cert pub-cert.pem --format yaml \
   > overlays/main/sealed-secrets/wharf-oauth-secret.yaml
+```
+
+```sh
+# Mail-service API key (mint a send-scoped key for the info@jannekeipert.de
+# connection via the Mail Manager, then seal it here).
+kubectl create secret generic wharf-mail-secret -n wharf \
+  --dry-run=client -o yaml \
+  --from-literal=MAIL_SERVICE_API_KEY="mk_..." \
+  | kubeseal --cert pub-cert.pem --format yaml \
+  > overlays/main/sealed-secrets/wharf-mail-secret.yaml
 ```
 
 The backend Deployment carries `reloader.stakater.com/auto: "true"`, so a synced
