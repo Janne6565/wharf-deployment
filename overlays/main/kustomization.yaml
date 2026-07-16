@@ -15,4 +15,4 @@ images:
   newTag: main-6831fcd
 - name: ghcr.io/janne6565/wharf-web
   newName: ghcr.io/janne6565/wharf-web
-  newTag: main-25ee2fa
+  newTag: main-375de3e
